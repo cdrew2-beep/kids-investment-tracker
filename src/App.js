@@ -6,7 +6,7 @@ function App() {
   // Load saved cash or start with $10,000
   const [cash, setCash] = useState(() => {
     const saved = localStorage.getItem('cash');
-    return saved ? parseFloat(saved) : 10000;
+    return saved ? parseFloat(saved) : 2.66;
   });
   
   // Load saved portfolio or start with one Apple stock
@@ -18,6 +18,38 @@ function App() {
   });
   
   const [newStock, setNewStock] = useState({ symbol: '', shares: 0, price: 0 });
+
+  const addCash = () => {
+  const amount = prompt('How much cash do you want to add?');
+  if (amount && !isNaN(amount)) {
+    setCash(cash + parseFloat(amount));
+  }
+};
+
+const removeCash = () => {
+  const amount = prompt('How much cash do you want to withdraw?');
+  if (amount && !isNaN(amount)) {
+    const withdrawal = parseFloat(amount);
+    if (withdrawal <= cash) {
+      setCash(cash - withdrawal);
+    } else {
+      alert("You don't have that much cash!");
+    }
+  }
+};
+
+const clearAllStocks = () => {
+  if (window.confirm('Are you sure? This will sell ALL stocks and return cash to you!')) {
+    // Calculate total value of all stocks
+    const totalStockValue = portfolio.reduce((sum, stock) => 
+      sum + (stock.shares * stock.currentPrice), 0
+    );
+    // Add that money back to cash
+    setCash(cash + totalStockValue);
+    // Clear all stocks
+    setPortfolio([]);
+  }
+};
 
   // Save cash whenever it changes
   useEffect(() => {
@@ -70,7 +102,7 @@ function App() {
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <h1 style={{ color: '#6B46C1', fontSize: '32px', marginBottom: '10px' }}>
-            📈 My Investment Tracker
+            📈 Abby's Investment Tracker
           </h1>
           <p style={{ color: '#666' }}>Learn about stocks and saving money! 🚀</p>
         </div>
@@ -102,9 +134,43 @@ function App() {
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '20px' }}>
               <div style={{ background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '10px', padding: '20px', color: 'white' }}>
-                <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>💵 Cash Available</h3>
-                <p style={{ fontSize: '32px', fontWeight: 'bold' }}>${cash.toFixed(2)}</p>
-              </div>
+  <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>💵 Cash Available</h3>
+  <p style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '15px' }}>${cash.toFixed(2)}</p>
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <button
+      onClick={addCash}
+      style={{ 
+        flex: 1,
+        padding: '8px 12px', 
+        backgroundColor: 'rgba(255,255,255,0.2)', 
+        color: 'white', 
+        border: '2px solid white',
+        borderRadius: '6px', 
+        fontSize: '14px',
+        fontWeight: 'bold',
+        cursor: 'pointer'
+      }}
+    >
+      ➕ Add Cash
+    </button>
+    <button
+      onClick={removeCash}
+      style={{ 
+        flex: 1,
+        padding: '8px 12px', 
+        backgroundColor: 'rgba(255,255,255,0.2)', 
+        color: 'white', 
+        border: '2px solid white',
+        borderRadius: '6px', 
+        fontSize: '14px',
+        fontWeight: 'bold',
+        cursor: 'pointer'
+      }}
+    >
+      ➖ Withdraw
+    </button>
+  </div>
+</div>
               
               <div style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)', borderRadius: '10px', padding: '20px', color: 'white' }}>
                 <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>📈 Stock Value</h3>
@@ -121,6 +187,23 @@ function App() {
 
             <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>My Stocks</h2>
+              {portfolio.length > 0 && (
+  <button
+    onClick={clearAllStocks}
+    style={{ 
+      padding: '8px 16px', 
+      backgroundColor: '#EF4444', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '6px', 
+      fontSize: '14px', 
+      cursor: 'pointer',
+      marginBottom: '15px'
+    }}
+  >
+    🗑️ Sell All Stocks
+  </button>
+)}
               {portfolio.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
                   No stocks yet! Click "Buy Stock" to get started.
