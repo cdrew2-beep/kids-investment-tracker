@@ -113,6 +113,59 @@ const refreshAllPrices = async () => {
   }
 };
 
+const editStock = (stockId) => {
+  const stock = portfolio.find(s => s.id === stockId);
+  if (!stock) return;
+  
+  const newShares = prompt(`Edit number of shares for ${stock.symbol}:\n\nCurrent: ${stock.shares} shares`, stock.shares);
+  
+  if (newShares === null) return; // User clicked Cancel
+  
+  const sharesNum = parseFloat(newShares);
+  if (isNaN(sharesNum) || sharesNum <= 0) {
+    alert('❌ Please enter a valid number of shares greater than 0');
+    return;
+  }
+  
+  const newBuyPrice = prompt(`Edit buy price for ${stock.symbol}:\n\nCurrent: $${stock.buyPrice.toFixed(2)}`, stock.buyPrice.toFixed(2));
+  
+  if (newBuyPrice === null) return; // User clicked Cancel
+  
+  const priceNum = parseFloat(newBuyPrice);
+  if (isNaN(priceNum) || priceNum <= 0) {
+    alert('❌ Please enter a valid price greater than 0');
+    return;
+  }
+  
+  // Calculate the difference in cost
+  const oldCost = stock.shares * stock.buyPrice;
+  const newCost = sharesNum * priceNum;
+  const costDifference = newCost - oldCost;
+  
+  // Check if user has enough cash for increased cost
+  if (costDifference > cash) {
+    alert(`❌ Not enough cash!\n\nThis change would cost an additional $${costDifference.toFixed(2)}\nYou only have $${cash.toFixed(2)} available.`);
+    return;
+  }
+  
+  // Update the portfolio
+  const updatedPortfolio = portfolio.map(s => {
+    if (s.id === stockId) {
+      return {
+        ...s,
+        shares: sharesNum,
+        buyPrice: priceNum
+      };
+    }
+    return s;
+  });
+  
+  setPortfolio(updatedPortfolio);
+  setCash(cash - costDifference);
+  
+  alert(`✅ Updated ${stock.symbol}!\n\nShares: ${stock.shares} → ${sharesNum}\nBuy Price: $${stock.buyPrice.toFixed(2)} → $${priceNum.toFixed(2)}\nCash adjusted by: $${costDifference.toFixed(2)}`);
+};
+
 const removeCash = () => {
   const amount = prompt('How much cash do you want to withdraw?');
   if (amount && !isNaN(amount)) {
@@ -354,12 +407,36 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                             ({gainLossPercent}%)
                           </p>
                         </div>
-                        <button
-                          onClick={() => removeStock(stock.id)}
-                          style={{ padding: '8px 12px', backgroundColor: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', marginLeft: '10px' }}
-                        >
-                          🗑️ Sell
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
+  <button
+    onClick={() => editStock(stock.id)}
+    style={{ 
+      padding: '8px 12px', 
+      backgroundColor: '#3B82F6', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '6px', 
+      cursor: 'pointer',
+      fontSize: '14px'
+    }}
+  >
+    ✏️ Edit
+  </button>
+  <button
+    onClick={() => removeStock(stock.id)}
+    style={{ 
+      padding: '8px 12px', 
+      backgroundColor: '#EF4444', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '6px', 
+      cursor: 'pointer',
+      fontSize: '14px'
+    }}
+  >
+    🗑️ Sell
+  </button>
+</div>
                       </div>
                     );
                   })}
