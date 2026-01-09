@@ -64,25 +64,46 @@ const refreshAllPrices = async () => {
     return;
   }
   
-  const confirmed = window.confirm('Refresh all stock prices? This will fetch current market prices.');
+  const confirmed = window.confirm(`Refresh all ${portfolio.length} stock prices?\n\nThis will take about ${portfolio.length * 15} seconds to avoid rate limits.`);
   if (!confirmed) return;
   
   const updatedPortfolio = [];
+  let successCount = 0;
+  let failCount = 0;
   
-  for (const stock of portfolio) {
+  // Show progress message
+  alert(`⏳ Refreshing ${portfolio.length} stocks...\n\nThis will take ${portfolio.length * 15} seconds.\n\nPlease wait and don't close this window!`);
+  
+  for (let i = 0; i < portfolio.length; i++) {
+    const stock = portfolio[i];
+    console.log(`Refreshing ${i + 1}/${portfolio.length}: ${stock.symbol}`);
+    
     const newPrice = await fetchStockPrice(stock.symbol);
+    
     if (newPrice) {
       updatedPortfolio.push({
         ...stock,
         currentPrice: newPrice
       });
+      successCount++;
+      console.log(`✅ ${stock.symbol}: $${newPrice}`);
     } else {
+      // Keep old price if fetch fails
       updatedPortfolio.push(stock);
+      failCount++;
+      console.log(`❌ ${stock.symbol}: Failed, keeping old price`);
+    }
+    
+    // Wait 15 seconds before next call (except after last one)
+    if (i < portfolio.length - 1) {
+      console.log('⏰ Waiting 15 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
     }
   }
   
   setPortfolio(updatedPortfolio);
-  alert('Prices updated!');
+  
+  alert(`✅ Refresh Complete!\n\nSuccessful: ${successCount}\nFailed: ${failCount}\n\n${failCount > 0 ? 'Failed stocks kept their old prices.' : 'All prices updated!'}`);
 };
 
   const addCash = () => {
