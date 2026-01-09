@@ -98,14 +98,14 @@ const clearAllStocks = () => {
   );
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f0f4f8', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#0F172A', minHeight: '100vh' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h1 style={{ color: '#6B46C1', fontSize: '32px', marginBottom: '10px' }}>
-            📈 Abby's Investment Tracker
-          </h1>
-          <p style={{ color: '#666' }}>Learn about stocks and saving money! 🚀</p>
-        </div>
+        <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+  <h1 style={{ color: '#A78BFA', fontSize: '32px', marginBottom: '10px' }}>
+    📈 Abby's Investment Tracker
+  </h1>
+  <p style={{ color: '#94A3B8' }}>Learn about stocks and saving money! 🚀</p>
+</div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
           {['portfolio', 'add', 'learn'].map(tab => (
@@ -115,12 +115,12 @@ const clearAllStocks = () => {
               style={{
                 padding: '12px 24px',
                 borderRadius: '8px',
-                border: 'none',
+                border: activeTab === tab ? 'none' : '1px solid #334155',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                backgroundColor: activeTab === tab ? '#6B46C1' : 'white',
-                color: activeTab === tab ? 'white' : '#666',
+                backgroundColor: activeTab === tab ? '#6B46C1' : '#1E293B',
+color: activeTab === tab ? 'white' : '#94A3B8',
               }}
             >
               {tab === 'portfolio' && '📊 My Stocks'}
@@ -185,8 +185,8 @@ const clearAllStocks = () => {
               </div>
             </div>
 
-            <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>My Stocks</h2>
+            <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+  <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>My Stocks</h2>
               {portfolio.length > 0 && (
   <button
     onClick={clearAllStocks}
@@ -205,7 +205,7 @@ const clearAllStocks = () => {
   </button>
 )}
               {portfolio.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
+                <p style={{ textAlign: 'center', color: '#94A3B8', padding: '40px' }}>
                   No stocks yet! Click "Buy Stock" to get started.
                 </p>
               ) : (
@@ -214,10 +214,10 @@ const clearAllStocks = () => {
                     const gainLoss = stock.shares * (stock.currentPrice - stock.buyPrice);
                     const gainLossPercent = ((stock.currentPrice - stock.buyPrice) / stock.buyPrice * 100).toFixed(1);
                     return (
-                      <div key={stock.id} style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={stock.id} style={{ backgroundColor: '#0F172A', borderRadius: '8px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' }}>
                         <div>
-                          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px' }}>{stock.symbol}</h3>
-                          <p style={{ fontSize: '14px', color: '#666' }}>
+                          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>{stock.symbol}</h3>
+<p style={{ fontSize: '14px', color: '#94A3B8' }}>
                             {stock.shares} shares × ${stock.currentPrice} = ${(stock.shares * stock.currentPrice).toFixed(2)}
                           </p>
                         </div>
@@ -245,11 +245,11 @@ const clearAllStocks = () => {
         )}
 
         {activeTab === 'add' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>Buy a Stock</h2>
+          <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+  <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>Buy a Stock</h2>
             <div style={{ maxWidth: '400px' }}>
               <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
                   Stock Symbol (like AAPL for Apple)
                 </label>
                 <input
@@ -262,7 +262,7 @@ const clearAllStocks = () => {
               </div>
               
               <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
                   Number of Shares
                 </label>
                 <input
@@ -275,7 +275,7 @@ const clearAllStocks = () => {
               </div>
               
               <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
                   Price per Share ($)
                 </label>
                 <input
@@ -307,8 +307,8 @@ const clearAllStocks = () => {
         )}
 
         {activeTab === 'learn' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>📚 Learn About Investing</h2>
+          <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+  <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>📚 Learn About Investing</h2>
             
             <div style={{ backgroundColor: '#EFF6FF', borderRadius: '8px', padding: '20px', marginBottom: '15px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '10px' }}>
