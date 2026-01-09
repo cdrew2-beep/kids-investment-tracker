@@ -20,6 +20,13 @@ function App() {
   
   const [newStock, setNewStock] = useState({ symbol: '', shares: 0, price: 0 });
 
+  const [savings, setSavings] = useState({
+  initial: 1000,
+  monthly: 100,
+  years: 10,
+  rate: 7
+});
+
 const fetchStockPrice = async (symbol) => {
   try {
     const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_KEY;
@@ -166,6 +173,8 @@ const editStock = (stockId) => {
   alert(`✅ Updated ${stock.symbol}!\n\nShares: ${stock.shares} → ${sharesNum}\nBuy Price: $${stock.buyPrice.toFixed(2)} → $${priceNum.toFixed(2)}\nCash adjusted by: $${costDifference.toFixed(2)}`);
 };
 
+
+
 const removeCash = () => {
   const amount = prompt('How much cash do you want to withdraw?');
   if (amount && !isNaN(amount)) {
@@ -189,6 +198,29 @@ const clearAllStocks = () => {
     // Clear all stocks
     setPortfolio([]);
   }
+};
+
+const calculateSavings = () => {
+  const { initial, monthly, years, rate } = savings;
+  const monthlyRate = rate / 100 / 12;
+  const months = years * 12;
+  
+  // Calculate future value with compound interest
+  let futureValue = initial;
+  
+  // Add monthly contributions with compound interest
+  for (let i = 0; i < months; i++) {
+    futureValue = futureValue * (1 + monthlyRate) + monthly;
+  }
+  
+  const totalContributions = initial + (monthly * months);
+  const totalInterest = futureValue - totalContributions;
+  
+  return {
+    futureValue: futureValue,
+    totalContributions: totalContributions,
+    totalInterest: totalInterest
+  };
 };
 
   // Save cash whenever it changes
@@ -253,7 +285,7 @@ const clearAllStocks = () => {
 </div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {['portfolio', 'add', 'learn'].map(tab => (
+          {['portfolio', 'add', 'savings', 'learn'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -270,6 +302,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
             >
               {tab === 'portfolio' && '📊 My Stocks'}
               {tab === 'add' && '➕ Buy Stock'}
+              {tab === 'savings' && '💰 Savings'}
               {tab === 'learn' && '📚 Learn'}
             </button>
           ))}
@@ -494,6 +527,184 @@ color: activeTab === tab ? 'white' : '#94A3B8',
             </div>
           </div>
         )}
+
+{activeTab === 'savings' && (
+  <div>
+    <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: '#F1F5F9' }}>
+        💰 Savings Calculator
+      </h2>
+      <p style={{ color: '#94A3B8', marginBottom: '20px' }}>
+        See how your money can grow over time with compound interest!
+      </p>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+        {/* Input Section */}
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>
+            📝 Your Plan
+          </h3>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
+              Starting Amount ($)
+            </label>
+            <input
+              type="number"
+              value={savings.initial}
+              onChange={(e) => setSavings({...savings, initial: parseFloat(e.target.value) || 0})}
+              style={{ width: '100%', padding: '10px', fontSize: '16px', border: '2px solid #334155', borderRadius: '6px', backgroundColor: '#0F172A', color: '#F1F5F9' }}
+            />
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '5px' }}>
+              How much money do you have now?
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
+              Monthly Savings ($)
+            </label>
+            <input
+              type="number"
+              value={savings.monthly}
+              onChange={(e) => setSavings({...savings, monthly: parseFloat(e.target.value) || 0})}
+              style={{ width: '100%', padding: '10px', fontSize: '16px', border: '2px solid #334155', borderRadius: '6px', backgroundColor: '#0F172A', color: '#F1F5F9' }}
+            />
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '5px' }}>
+              How much can you save each month?
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
+              Number of Years
+            </label>
+            <input
+              type="number"
+              value={savings.years}
+              onChange={(e) => setSavings({...savings, years: parseFloat(e.target.value) || 0})}
+              style={{ width: '100%', padding: '10px', fontSize: '16px', border: '2px solid #334155', borderRadius: '6px', backgroundColor: '#0F172A', color: '#F1F5F9' }}
+            />
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '5px' }}>
+              How long will you save?
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
+              Interest Rate (% per year)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={savings.rate}
+              onChange={(e) => setSavings({...savings, rate: parseFloat(e.target.value) || 0})}
+              style={{ width: '100%', padding: '10px', fontSize: '16px', border: '2px solid #334155', borderRadius: '6px', backgroundColor: '#0F172A', color: '#F1F5F9' }}
+            />
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '5px' }}>
+              Average stock market return is ~7-10% per year
+            </p>
+          </div>
+        </div>
+        
+        {/* Results Section */}
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>
+            🎯 Your Results
+          </h3>
+          
+          {(() => {
+            const results = calculateSavings();
+            return (
+              <>
+                <div style={{ background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '10px', padding: '25px', marginBottom: '20px', textAlign: 'center' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', marginBottom: '10px' }}>
+                    Your Money Will Grow To:
+                  </p>
+                  <p style={{ color: 'white', fontSize: '48px', fontWeight: 'bold', marginBottom: '0' }}>
+                    ${results.futureValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                
+                <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '10px', padding: '20px' }}>
+                  <div style={{ marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #334155' }}>
+                    <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>
+                      💵 Total You Saved
+                    </p>
+                    <p style={{ color: '#F1F5F9', fontSize: '24px', fontWeight: 'bold' }}>
+                      ${results.totalContributions.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  
+                  <div style={{ marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #334155' }}>
+                    <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>
+                      ✨ Interest Earned (Free Money!)
+                    </p>
+                    <p style={{ color: '#10B981', fontSize: '24px', fontWeight: 'bold' }}>
+                      ${results.totalInterest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>
+                      📊 Interest as % of Total
+                    </p>
+                    <p style={{ color: '#A78BFA', fontSize: '24px', fontWeight: 'bold' }}>
+                      {((results.totalInterest / results.futureValue) * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                
+                <div style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', borderRadius: '10px', padding: '15px', marginTop: '20px' }}>
+                  <p style={{ color: '#93C5FD', fontSize: '14px', lineHeight: '1.6' }}>
+                    💡 <strong style={{ color: '#DBEAFE' }}>What this means:</strong> If you start with ${savings.initial.toLocaleString()} and save ${savings.monthly.toLocaleString()} every month for {savings.years} years, you'll have <strong style={{ color: '#DBEAFE' }}>${results.futureValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong>! That includes ${results.totalInterest.toLocaleString('en-US', { maximumFractionDigits: 0 })} in interest that you didn't have to work for!
+                  </p>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+    
+    {/* Educational Section */}
+    <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+      <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>
+        🧠 Understanding Compound Interest
+      </h3>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
+        <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+          <h4 style={{ color: '#10B981', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+            🌱 What is Compound Interest?
+          </h4>
+          <p style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '1.6' }}>
+            It's when you earn interest on your interest! Your money grows faster and faster over time, like a snowball rolling down a hill.
+          </p>
+        </div>
+        
+        <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+          <h4 style={{ color: '#3B82F6', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+            ⏰ Why Start Early?
+          </h4>
+          <p style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '1.6' }}>
+            The earlier you start, the more time your money has to grow. Starting at 10 vs 20 can mean TENS OF THOUSANDS more dollars!
+          </p>
+        </div>
+        
+        <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+          <h4 style={{ color: '#A78BFA', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+            🎯 The Secret to Wealth
+          </h4>
+          <p style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '1.6' }}>
+            Save regularly + Give it time + Let compound interest work = Financial freedom! Even small amounts add up to big results.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
         {activeTab === 'learn' && (
           <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
