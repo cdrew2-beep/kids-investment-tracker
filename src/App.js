@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function App() {
   const [activeTab, setActiveTab] = useState('portfolio');
@@ -285,7 +286,7 @@ const calculateSavings = () => {
 </div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {['portfolio', 'add', 'savings', 'learn'].map(tab => (
+          {['portfolio', 'add', 'savings', 'charts', 'learn'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -303,6 +304,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
               {tab === 'portfolio' && '📊 My Stocks'}
               {tab === 'add' && '➕ Buy Stock'}
               {tab === 'savings' && '💰 Savings'}
+              {tab === 'charts' && '📈 Charts'}
               {tab === 'learn' && '📚 Learn'}
             </button>
           ))}
@@ -702,6 +704,133 @@ color: activeTab === tab ? 'white' : '#94A3B8',
         </div>
       </div>
     </div>
+  </div>
+)}
+
+{activeTab === 'charts' && (
+  <div>
+    {portfolio.length === 0 ? (
+      <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '40px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+        <p style={{ color: '#94A3B8', fontSize: '18px' }}>
+          📊 No data to visualize yet!<br />
+          Buy some stocks to see beautiful charts.
+        </p>
+      </div>
+    ) : (
+      <>
+        {/* Asset Allocation Pie Chart */}
+        <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: '#F1F5F9' }}>
+            🥧 Portfolio Allocation
+          </h2>
+          <p style={{ color: '#94A3B8', marginBottom: '20px' }}>
+            See how your money is distributed across different stocks
+          </p>
+          
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={portfolio.map(stock => ({
+                  name: stock.symbol,
+                  value: stock.shares * stock.currentPrice
+                }))}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={120}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {portfolio.map((entry, index) => {
+                  const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6', '#F97316'];
+                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                })}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '6px', color: '#F1F5F9' }}
+                formatter={(value) => `$${value.toFixed(2)}`}
+              />
+              <Legend 
+                wrapperStyle={{ color: '#F1F5F9' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Individual Stock Performance Bar Chart */}
+        <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: '#F1F5F9' }}>
+            📊 Stock Performance
+          </h2>
+          <p style={{ color: '#94A3B8', marginBottom: '20px' }}>
+            Compare how each stock is performing
+          </p>
+          
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={portfolio.map(stock => ({
+              name: stock.symbol,
+              'Total Value': stock.shares * stock.currentPrice,
+              'Profit/Loss': stock.shares * (stock.currentPrice - stock.buyPrice),
+              'Buy Cost': stock.shares * stock.buyPrice
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="name" stroke="#94A3B8" />
+              <YAxis stroke="#94A3B8" />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '6px', color: '#F1F5F9' }}
+                formatter={(value) => `$${value.toFixed(2)}`}
+              />
+              <Legend wrapperStyle={{ color: '#F1F5F9' }} />
+              <Bar dataKey="Buy Cost" fill="#64748B" />
+              <Bar dataKey="Total Value" fill="#3B82F6" />
+              <Bar dataKey="Profit/Loss" fill="#10B981" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Portfolio Statistics */}
+        <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>
+            📈 Portfolio Statistics
+          </h2>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+            <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+              <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>Total Stocks</p>
+              <p style={{ color: '#F1F5F9', fontSize: '28px', fontWeight: 'bold' }}>{portfolio.length}</p>
+            </div>
+            
+            <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+              <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>Total Shares</p>
+              <p style={{ color: '#F1F5F9', fontSize: '28px', fontWeight: 'bold' }}>
+                {portfolio.reduce((sum, stock) => sum + stock.shares, 0)}
+              </p>
+            </div>
+            
+            <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+              <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>Average Gain/Loss</p>
+              <p style={{ color: totalGainLoss >= 0 ? '#10B981' : '#EF4444', fontSize: '28px', fontWeight: 'bold' }}>
+                {((totalGainLoss / totalValue) * 100).toFixed(1)}%
+              </p>
+            </div>
+            
+            <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '15px' }}>
+              <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '5px' }}>Best Performer</p>
+              <p style={{ color: '#10B981', fontSize: '28px', fontWeight: 'bold' }}>
+                {portfolio.length > 0 ? 
+                  portfolio.reduce((best, stock) => {
+                    const gain = ((stock.currentPrice - stock.buyPrice) / stock.buyPrice) * 100;
+                    const bestGain = ((best.currentPrice - best.buyPrice) / best.buyPrice) * 100;
+                    return gain > bestGain ? stock : best;
+                  }).symbol 
+                  : 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
   </div>
 )}
 
