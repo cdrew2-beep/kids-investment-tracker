@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function App() {
   const [activeTab, setActiveTab] = useState('portfolio');
@@ -18,6 +19,71 @@ function App() {
   });
   
   const [newStock, setNewStock] = useState({ symbol: '', shares: 0, price: 0 });
+
+const fetchStockPrice = async (symbol) => {
+  try {
+    const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_KEY;
+    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
+    
+    console.log('Fetching price for:', symbol);
+    const response = await axios.get(url);
+    const data = response.data;
+    
+    // Check for rate limit message
+    if (data.Note) {
+      alert('⚠️ API Rate Limit Reached!\n\nFree tier allows 5 calls per minute.\nPlease wait 60 seconds and try again.');
+      return null;
+    }
+    
+    // Check for invalid API key
+    if (data['Error Message']) {
+      alert('❌ Error: Invalid API key or stock symbol.\n\nMake sure your .env file has the correct API key.');
+      return null;
+    }
+    
+    const quote = data['Global Quote'];
+    
+    if (quote && quote['05. price']) {
+      const price = parseFloat(quote['05. price']);
+      console.log('Price fetched successfully:', price);
+      return price;
+    } else {
+      alert(`❌ Stock symbol "${symbol}" not found!\n\nMake sure you're using the correct ticker symbol.\nExamples: AAPL, TSLA, MSFT, GOOGL`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching stock price:', error);
+    alert('❌ Network error. Please check your internet connection and try again.');
+    return null;
+  }
+};
+
+const refreshAllPrices = async () => {
+  if (portfolio.length === 0) {
+    alert('No stocks to refresh!');
+    return;
+  }
+  
+  const confirmed = window.confirm('Refresh all stock prices? This will fetch current market prices.');
+  if (!confirmed) return;
+  
+  const updatedPortfolio = [];
+  
+  for (const stock of portfolio) {
+    const newPrice = await fetchStockPrice(stock.symbol);
+    if (newPrice) {
+      updatedPortfolio.push({
+        ...stock,
+        currentPrice: newPrice
+      });
+    } else {
+      updatedPortfolio.push(stock);
+    }
+  }
+  
+  setPortfolio(updatedPortfolio);
+  alert('Prices updated!');
+};
 
   const addCash = () => {
   const amount = prompt('How much cash do you want to add?');
@@ -61,25 +127,30 @@ const clearAllStocks = () => {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
   }, [portfolio]);
 
-  const addStock = () => {
-    if (newStock.symbol && newStock.shares > 0 && newStock.price > 0) {
-      const cost = newStock.shares * newStock.price;
+ const addStock = async () => {
+  if (newStock.symbol && newStock.shares > 0) {
+    // Fetch real price
+    const realPrice = await fetchStockPrice(newStock.symbol);
+    
+    if (realPrice) {
+      const cost = newStock.shares * realPrice;
       if (cost <= cash) {
         setPortfolio([...portfolio, {
           id: Date.now(),
           symbol: newStock.symbol.toUpperCase(),
           name: newStock.symbol.toUpperCase(),
           shares: parseFloat(newStock.shares),
-          buyPrice: parseFloat(newStock.price),
-          currentPrice: parseFloat(newStock.price)
+          buyPrice: realPrice,
+          currentPrice: realPrice
         }]);
         setCash(cash - cost);
         setNewStock({ symbol: '', shares: 0, price: 0 });
       } else {
-        alert("Not enough cash!");
+        alert(`Not enough cash! ${newStock.shares} shares costs $${cost.toFixed(2)}`);
       }
     }
-  };
+  }
+};
 
   const removeStock = (id) => {
     const stock = portfolio.find(s => s.id === id);
@@ -187,23 +258,41 @@ color: activeTab === tab ? 'white' : '#94A3B8',
 
             <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
   <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: '#F1F5F9' }}>My Stocks</h2>
-              {portfolio.length > 0 && (
+
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
   <button
-    onClick={clearAllStocks}
+    onClick={refreshAllPrices}
     style={{ 
       padding: '8px 16px', 
-      backgroundColor: '#EF4444', 
+      backgroundColor: '#3B82F6', 
       color: 'white', 
       border: 'none', 
       borderRadius: '6px', 
       fontSize: '14px', 
-      cursor: 'pointer',
-      marginBottom: '15px'
+      cursor: 'pointer'
     }}
   >
-    🗑️ Sell All Stocks
+    🔄 Refresh Prices
   </button>
-)}
+  
+  {portfolio.length > 0 && (
+    <button
+      onClick={clearAllStocks}
+      style={{ 
+        padding: '8px 16px', 
+        backgroundColor: '#EF4444', 
+        color: 'white', 
+        border: 'none', 
+        borderRadius: '6px', 
+        fontSize: '14px', 
+        cursor: 'pointer'
+      }}
+    >
+      🗑️ Sell All Stocks
+    </button>
+  )}
+</div>
+
               {portfolio.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#94A3B8', padding: '40px' }}>
                   No stocks yet! Click "Buy Stock" to get started.
@@ -216,11 +305,26 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                     return (
                       <div key={stock.id} style={{ backgroundColor: '#0F172A', borderRadius: '8px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' }}>
                         <div>
-                          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>{stock.symbol}</h3>
-<p style={{ fontSize: '14px', color: '#94A3B8' }}>
-                            {stock.shares} shares × ${stock.currentPrice} = ${(stock.shares * stock.currentPrice).toFixed(2)}
-                          </p>
-                        </div>
+  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>{stock.symbol}</h3>
+  <p style={{ fontSize: '14px', color: '#94A3B8', marginBottom: '5px' }}>
+    {stock.shares} shares
+  </p>
+  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '3px' }}>
+  Buy: ${stock.buyPrice.toFixed(2)} → Now: ${stock.currentPrice.toFixed(2)}
+  {stock.currentPrice > stock.buyPrice && (
+    <span style={{ color: '#10B981', marginLeft: '8px' }}>▲ Up</span>
+  )}
+  {stock.currentPrice < stock.buyPrice && (
+    <span style={{ color: '#EF4444', marginLeft: '8px' }}>▼ Down</span>
+  )}
+  {stock.currentPrice === stock.buyPrice && (
+    <span style={{ color: '#94A3B8', marginLeft: '8px' }}>→ Same</span>
+  )}
+</p>
+  <p style={{ fontSize: '13px', color: '#94A3B8' }}>
+    Total Value: ${(stock.shares * stock.currentPrice).toFixed(2)}
+  </p>
+</div>
                         <div style={{ textAlign: 'right' }}>
                           <p style={{ fontSize: '18px', fontWeight: 'bold', color: gainLoss >= 0 ? '#10B981' : '#EF4444' }}>
                             {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)}
@@ -274,33 +378,20 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                 />
               </div>
               
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>
-                  Price per Share ($)
-                </label>
-                <input
-                  type="number"
-                  value={newStock.price || ''}
-                  onChange={(e) => setNewStock({...newStock, price: e.target.value})}
-                  style={{ width: '100%', padding: '10px', fontSize: '16px', border: '2px solid #ddd', borderRadius: '6px' }}
-                  placeholder="150.00"
-                />
-              </div>
-              
-              {newStock.shares > 0 && newStock.price > 0 && (
-                <div style={{ backgroundColor: '#EFF6FF', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
-                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>Total Cost:</p>
-                  <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#3B82F6' }}>
-                    ${(newStock.shares * newStock.price).toFixed(2)}
-                  </p>
-                </div>
-              )}
+                            
+              {newStock.shares > 0 && (
+  <div style={{ backgroundColor: '#1E3A8A', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
+    <p style={{ fontSize: '14px', color: '#93C5FD', marginBottom: '5px' }}>
+      Price will be fetched automatically when you click "Buy Stock"
+    </p>
+  </div>
+)}
               
               <button
                 onClick={addStock}
                 style={{ width: '100%', padding: '12px', backgroundColor: '#6B46C1', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                ➕ Buy Stock
+                ➕ Buy Stock (Fetch Real Price)
               </button>
             </div>
           </div>
