@@ -32,8 +32,6 @@ const [researchSymbol, setResearchSymbol] = useState('');
 const [researchData, setResearchData] = useState(null);
 const [researchLoading, setResearchLoading] = useState(false);
 
-const [selectedStock, setSelectedStock] = useState(null);
-const [showResearch, setShowResearch] = useState(false);
 
 const fetchStockPrice = async (symbol) => {
   try {
@@ -513,23 +511,6 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                           </p>
                         </div>
                        <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
-  <button
-    onClick={() => {
-      setSelectedStock(stock);
-      setShowResearch(true);
-    }}
-    style={{ 
-      padding: '8px 12px', 
-      backgroundColor: '#8B5CF6', 
-      color: 'white', 
-      border: 'none', 
-      borderRadius: '6px', 
-      cursor: 'pointer',
-      fontSize: '14px'
-    }}
-  >
-    📰 Research
-  </button>
   <button
     onClick={() => editStock(stock.id)}
     style={{ 
