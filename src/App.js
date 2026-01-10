@@ -28,6 +28,13 @@ function App() {
   rate: 7
 });
 
+const [researchSymbol, setResearchSymbol] = useState('');
+const [researchData, setResearchData] = useState(null);
+const [researchLoading, setResearchLoading] = useState(false);
+
+const [selectedStock, setSelectedStock] = useState(null);
+const [showResearch, setShowResearch] = useState(false);
+
 const fetchStockPrice = async (symbol) => {
   try {
     const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_KEY;
@@ -118,6 +125,26 @@ const refreshAllPrices = async () => {
   const amount = prompt('How much cash do you want to add?');
   if (amount && !isNaN(amount)) {
     setCash(cash + parseFloat(amount));
+  }
+};
+
+const researchStock = async () => {
+  if (!researchSymbol) {
+    alert('Please enter a stock symbol');
+    return;
+  }
+  
+  setResearchLoading(true);
+  const price = await fetchStockPrice(researchSymbol.toUpperCase());
+  setResearchLoading(false);
+  
+  if (price) {
+    setResearchData({
+      symbol: researchSymbol.toUpperCase(),
+      price: price
+    });
+  } else {
+    setResearchData(null);
   }
 };
 
@@ -243,13 +270,16 @@ const calculateSavings = () => {
       const cost = newStock.shares * realPrice;
       if (cost <= cash) {
         setPortfolio([...portfolio, {
-          id: Date.now(),
-          symbol: newStock.symbol.toUpperCase(),
-          name: newStock.symbol.toUpperCase(),
-          shares: parseFloat(newStock.shares),
-          buyPrice: realPrice,
-          currentPrice: realPrice
-        }]);
+  id: Date.now(),
+  symbol: newStock.symbol.toUpperCase(),
+  name: newStock.symbol.toUpperCase(),
+  shares: parseFloat(newStock.shares),
+  buyPrice: realPrice,
+  currentPrice: realPrice,
+  notes: '',
+  buyDate: new Date().toISOString()
+}]);
+
         setCash(cash - cost);
         setNewStock({ symbol: '', shares: 0, price: 0 });
       } else {
@@ -286,7 +316,7 @@ const calculateSavings = () => {
 </div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {['portfolio', 'add', 'savings', 'charts', 'learn'].map(tab => (
+          {['portfolio', 'research', 'add', 'savings', 'charts', 'learn'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -302,6 +332,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
               }}
             >
               {tab === 'portfolio' && '📊 My Stocks'}
+              {tab === 'research' && '🔍 Research'}
               {tab === 'add' && '➕ Buy Stock'}
               {tab === 'savings' && '💰 Savings'}
               {tab === 'charts' && '📈 Charts'}
@@ -442,7 +473,24 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                             ({gainLossPercent}%)
                           </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
+                       <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
+  <button
+    onClick={() => {
+      setSelectedStock(stock);
+      setShowResearch(true);
+    }}
+    style={{ 
+      padding: '8px 12px', 
+      backgroundColor: '#8B5CF6', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '6px', 
+      cursor: 'pointer',
+      fontSize: '14px'
+    }}
+  >
+    📰 Research
+  </button>
   <button
     onClick={() => editStock(stock.id)}
     style={{ 
@@ -480,6 +528,133 @@ color: activeTab === tab ? 'white' : '#94A3B8',
             </div>
           </div>
         )}
+
+
+{activeTab === 'research' && (
+  <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', border: '1px solid #334155' }}>
+    <h2 style={{ fontSize: '24px', color: '#F1F5F9' }}>🔍 Research a Stock</h2>
+    <p style={{ color: '#94A3B8', marginBottom: '20px' }}>Look up any stock to learn more!</p>
+    
+    <div style={{ maxWidth: '500px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <input
+          type="text"
+          value={researchSymbol}
+          onChange={(e) => setResearchSymbol(e.target.value.toUpperCase())}
+          placeholder="Enter stock symbol"
+          style={{
+            flex: 1,
+            padding: '12px',
+            fontSize: '16px',
+            border: '2px solid #334155',
+            borderRadius: '6px',
+            backgroundColor: '#0F172A',
+            color: '#F1F5F9'
+          }}
+        />
+        <button
+          onClick={researchStock}
+          disabled={researchLoading}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: researchLoading ? '#64748B' : '#8B5CF6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: researchLoading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {researchLoading ? 'Loading...' : 'Search'}
+        </button>
+      </div>
+    </div>
+    
+    {researchData && (
+      <div>
+        <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '28px', fontWeight: 'bold', color: '#F1F5F9' }}>
+            {researchData.symbol}
+          </h3>
+          <p style={{ fontSize: '48px', fontWeight: 'bold', color: '#10B981' }}>
+            ${researchData.price.toFixed(2)}
+          </p>
+        </div>
+        
+        <div>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '15px' }}>
+            📚 Research Links
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+            <button
+              onClick={() => window.open('https://finance.yahoo.com/quote/' + researchData.symbol, '_blank')}
+              style={{
+                padding: '15px',
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              📊 Yahoo Finance
+            </button>
+            <button
+              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+stock+news', '_blank')}
+              style={{
+                padding: '15px',
+                backgroundColor: '#10B981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              📰 Latest News
+            </button>
+            <button
+              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+company', '_blank')}
+              style={{
+                padding: '15px',
+                backgroundColor: '#8B5CF6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              🏢 Company Info
+            </button>
+            <button
+              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+competitors', '_blank')}
+              style={{
+                padding: '15px',
+                backgroundColor: '#F59E0B',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ⚔️ Competitors
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+
+
 
         {activeTab === 'add' && (
           <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #334155' }}>
@@ -874,6 +1049,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
           </div>
         )}
       </div>
+
     </div>
   );
 }
