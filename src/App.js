@@ -135,18 +135,57 @@ const researchStock = async () => {
   }
   
   setResearchLoading(true);
-  const price = await fetchStockPrice(researchSymbol.toUpperCase());
-  setResearchLoading(false);
   
-  if (price) {
+  try {
+    const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_KEY;
+    
+    // Get current price
+    const priceUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${researchSymbol.toUpperCase()}&apikey=${apiKey}`;
+    const priceResponse = await axios.get(priceUrl);
+    const priceData = priceResponse.data['Global Quote'];
+    
+    if (!priceData || !priceData['05. price']) {
+      alert('Stock not found! Try another symbol.');
+      setResearchLoading(false);
+      setResearchData(null);
+      return;
+    }
+    
+    // Get company overview
+    const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${researchSymbol.toUpperCase()}&apikey=${apiKey}`;
+    const overviewResponse = await axios.get(overviewUrl);
+    const overview = overviewResponse.data;
+    
     setResearchData({
       symbol: researchSymbol.toUpperCase(),
-      price: price
+      price: parseFloat(priceData['05. price']),
+      change: parseFloat(priceData['09. change']),
+      changePercent: priceData['10. change percent'],
+      volume: priceData['06. volume'],
+      previousClose: parseFloat(priceData['08. previous close']),
+      open: parseFloat(priceData['02. open']),
+      high: parseFloat(priceData['03. high']),
+      low: parseFloat(priceData['04. low']),
+      // Company info
+      name: overview.Name || researchSymbol.toUpperCase(),
+      description: overview.Description || 'Company information not available.',
+      sector: overview.Sector || 'N/A',
+      industry: overview.Industry || 'N/A',
+      marketCap: overview.MarketCapitalization || 'N/A',
+      peRatio: overview.PERatio || 'N/A',
+      dividendYield: overview.DividendYield || 'N/A',
+      week52High: overview['52WeekHigh'] || 'N/A',
+      week52Low: overview['52WeekLow'] || 'N/A'
     });
-  } else {
+  } catch (error) {
+    console.error('Error fetching stock data:', error);
+    alert('Error loading stock data. Please try again.');
     setResearchData(null);
   }
+  
+  setResearchLoading(false);
 };
+
 
 const editStock = (stockId) => {
   const stock = portfolio.find(s => s.id === stockId);
@@ -531,127 +570,198 @@ color: activeTab === tab ? 'white' : '#94A3B8',
 
 
 {activeTab === 'research' && (
-  <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', border: '1px solid #334155' }}>
-    <h2 style={{ fontSize: '24px', color: '#F1F5F9' }}>🔍 Research a Stock</h2>
-    <p style={{ color: '#94A3B8', marginBottom: '20px' }}>Look up any stock to learn more!</p>
-    
-    <div style={{ maxWidth: '500px', marginBottom: '20px' }}>
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <input
-          type="text"
-          value={researchSymbol}
-          onChange={(e) => setResearchSymbol(e.target.value.toUpperCase())}
-          placeholder="Enter stock symbol"
-          style={{
-            flex: 1,
-            padding: '12px',
-            fontSize: '16px',
-            border: '2px solid #334155',
-            borderRadius: '6px',
-            backgroundColor: '#0F172A',
-            color: '#F1F5F9'
-          }}
-        />
-        <button
-          onClick={researchStock}
-          disabled={researchLoading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: researchLoading ? '#64748B' : '#8B5CF6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            cursor: researchLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {researchLoading ? 'Loading...' : 'Search'}
-        </button>
-      </div>
-    </div>
-    
-    {researchData && (
-      <div>
-        <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '28px', fontWeight: 'bold', color: '#F1F5F9' }}>
-            {researchData.symbol}
-          </h3>
-          <p style={{ fontSize: '48px', fontWeight: 'bold', color: '#10B981' }}>
-            ${researchData.price.toFixed(2)}
-          </p>
+  <div>
+    <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', border: '1px solid #334155' }}>
+      <h2 style={{ fontSize: '24px', color: '#F1F5F9' }}>🔍 Research a Stock</h2>
+      <p style={{ color: '#94A3B8', marginBottom: '20px' }}>Look up any stock to learn more before investing!</p>
+      
+      <div style={{ maxWidth: '500px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            value={researchSymbol}
+            onChange={(e) => setResearchSymbol(e.target.value.toUpperCase())}
+            onKeyPress={(e) => e.key === 'Enter' && researchStock()}
+            placeholder="Enter stock symbol (e.g., AAPL, TSLA)"
+            style={{
+              flex: 1,
+              padding: '12px',
+              fontSize: '16px',
+              border: '2px solid #334155',
+              borderRadius: '6px',
+              backgroundColor: '#0F172A',
+              color: '#F1F5F9'
+            }}
+          />
+          <button
+            onClick={researchStock}
+            disabled={researchLoading}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: researchLoading ? '#64748B' : '#8B5CF6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: 'bold',
+              cursor: researchLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {researchLoading ? '⏳ Loading...' : '🔍 Research'}
+          </button>
         </div>
-        
+      </div>
+      
+      {researchData && (
         <div>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '15px' }}>
-            📚 Research Links
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-            <button
-              onClick={() => window.open('https://finance.yahoo.com/quote/' + researchData.symbol, '_blank')}
-              style={{
-                padding: '15px',
-                backgroundColor: '#3B82F6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              📊 Yahoo Finance
-            </button>
-            <button
-              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+stock+news', '_blank')}
-              style={{
-                padding: '15px',
-                backgroundColor: '#10B981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              📰 Latest News
-            </button>
-            <button
-              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+company', '_blank')}
-              style={{
-                padding: '15px',
-                backgroundColor: '#8B5CF6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              🏢 Company Info
-            </button>
-            <button
-              onClick={() => window.open('https://www.google.com/search?q=' + researchData.symbol + '+competitors', '_blank')}
-              style={{
-                padding: '15px',
-                backgroundColor: '#F59E0B',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              ⚔️ Competitors
-            </button>
+          {/* Company Header */}
+          <div style={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '28px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '5px' }}>
+              {researchData.name}
+            </h3>
+            <p style={{ color: '#94A3B8', fontSize: '16px', marginBottom: '15px' }}>
+              {researchData.symbol} • {researchData.sector} • {researchData.industry}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginBottom: '10px' }}>
+              <p style={{ fontSize: '48px', fontWeight: 'bold', color: '#10B981' }}>
+                ${researchData.price.toFixed(2)}
+              </p>
+              <p style={{ 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                color: researchData.change >= 0 ? '#10B981' : '#EF4444' 
+              }}>
+                {researchData.change >= 0 ? '+' : ''}{researchData.change.toFixed(2)} 
+                ({researchData.changePercent})
+              </p>
+            </div>
+          </div>
+          
+          {/* What Does This Company Do? */}
+          <div style={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '10px' }}>
+              🏢 What Does {researchData.symbol} Do?
+            </h3>
+            <p style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '1.8' }}>
+              {researchData.description}
+            </p>
+          </div>
+          
+          {/* Key Metrics */}
+          <div style={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '15px' }}>
+              📊 Key Metrics
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>Market Cap</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  ${researchData.marketCap !== 'N/A' ? (parseFloat(researchData.marketCap) / 1000000000).toFixed(2) + 'B' : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>P/E Ratio</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  {researchData.peRatio !== 'N/A' ? parseFloat(researchData.peRatio).toFixed(2) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>Dividend Yield</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  {researchData.dividendYield !== 'N/A' ? (parseFloat(researchData.dividendYield) * 100).toFixed(2) + '%' : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>52-Week High</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  ${researchData.week52High !== 'N/A' ? parseFloat(researchData.week52High).toFixed(2) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>52-Week Low</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  ${researchData.week52Low !== 'N/A' ? parseFloat(researchData.week52Low).toFixed(2) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#94A3B8', fontSize: '12px', marginBottom: '5px' }}>Today's Volume</p>
+                <p style={{ color: '#F1F5F9', fontSize: '18px', fontWeight: 'bold' }}>
+                  {researchData.volume ? (parseInt(researchData.volume) / 1000000).toFixed(2) + 'M' : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* What These Numbers Mean */}
+          <div style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#DBEAFE', marginBottom: '15px' }}>
+              📚 What These Numbers Mean
+            </h3>
+            <div style={{ color: '#93C5FD', fontSize: '14px', lineHeight: '1.8' }}>
+              <p style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#DBEAFE' }}>Market Cap:</strong> The total value of all the company's shares. Bigger = larger company.
+              </p>
+              <p style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#DBEAFE' }}>P/E Ratio:</strong> Price-to-Earnings ratio. Shows if a stock is expensive or cheap compared to its profits. Lower can be better!
+              </p>
+              <p style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#DBEAFE' }}>Dividend Yield:</strong> How much the company pays you each year just for owning the stock! Like earning interest.
+              </p>
+              <p>
+                <strong style={{ color: '#DBEAFE' }}>52-Week High/Low:</strong> The highest and lowest prices this year. Shows how much the stock moves around.
+              </p>
+            </div>
+          </div>
+          
+          {/* Questions to Ask */}
+          <div style={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', padding: '20px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '15px' }}>
+              💭 Questions to Think About
+            </h3>
+            <ul style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '2', paddingLeft: '20px', margin: 0 }}>
+              <li>Do I understand what {researchData.symbol} does?</li>
+              <li>Do I use their products or services?</li>
+              <li>Is the company in an industry I believe in? ({researchData.industry})</li>
+              <li>Am I comfortable if the price goes down temporarily?</li>
+              <li>Would I be happy owning this for 5+ years?</li>
+              <li>Does the P/E ratio seem reasonable compared to other companies?</li>
+            </ul>
           </div>
         </div>
+      )}
+    </div>
+    
+    {/* Popular Stocks */}
+    <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', border: '1px solid #334155' }}>
+      <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '15px' }}>
+        🌟 Popular Stocks to Research
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
+        {['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'DIS', 'NKE', 'WMT', 'JPM'].map(symbol => (
+          <button
+            key={symbol}
+            onClick={() => {
+              setResearchSymbol(symbol);
+              researchStock();
+            }}
+            style={{
+              padding: '12px',
+              backgroundColor: '#0F172A',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              color: '#F1F5F9',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            {symbol}
+          </button>
+        ))}
       </div>
-    )}
+    </div>
   </div>
 )}
+
 
 
 
