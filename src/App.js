@@ -28,6 +28,12 @@ function App() {
   rate: 7
 });
 
+const [watchlist, setWatchlist] = useState(() => {
+  const saved = localStorage.getItem('watchlist');
+  return saved ? JSON.parse(saved) : [];
+});
+
+const [watchlistLoading, setWatchlistLoading] = useState(false);
 const [researchSymbol, setResearchSymbol] = useState('');
 const [researchData, setResearchData] = useState(null);
 const [researchLoading, setResearchLoading] = useState(false);
@@ -298,6 +304,10 @@ const calculateSavings = () => {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
   }, [portfolio]);
 
+useEffect(() => {
+  localStorage.setItem('watchlist', JSON.stringify(watchlist));
+}, [watchlist]);
+
  const addStock = async () => {
   if (newStock.symbol && newStock.shares > 0) {
     // Fetch real price
@@ -342,6 +352,84 @@ const calculateSavings = () => {
     sum + (stock.shares * (stock.currentPrice - stock.buyPrice)), 0
   );
 
+
+  const addToWatchlist = async (symbol) => {
+  if (!symbol) {
+    alert('Please enter a stock symbol');
+    return;
+  }
+  
+  // Check if already in watchlist
+  if (watchlist.find(item => item.symbol === symbol.toUpperCase())) {
+    alert(`${symbol.toUpperCase()} is already in your watchlist!`);
+    return;
+  }
+  
+  // Fetch current price
+setResearchLoading(true);
+const price = await fetchStockPrice(symbol.toUpperCase());
+setResearchLoading(false);
+  
+  if (price) {
+    const newItem = {
+      id: Date.now(),
+      symbol: symbol.toUpperCase(),
+      addedDate: new Date().toISOString(),
+      addedPrice: price,
+      currentPrice: price
+    };
+    
+    setWatchlist([...watchlist, newItem]);
+    alert(`✅ ${symbol.toUpperCase()} added to watchlist at $${price.toFixed(2)}`);
+  }
+};
+
+const removeFromWatchlist = (id) => {
+  if (window.confirm('Remove this stock from your watchlist?')) {
+    setWatchlist(watchlist.filter(item => item.id !== id));
+  }
+};
+
+const refreshWatchlistPrices = async () => {
+  if (watchlist.length === 0) {
+    alert('Your watchlist is empty!');
+    return;
+  }
+  
+  const confirmed = window.confirm(`Refresh prices for ${watchlist.length} stocks?\n\nThis will take about ${watchlist.length * 15} seconds.`);
+  if (!confirmed) return;
+  
+  const updatedWatchlist = [];
+  
+  for (let i = 0; i < watchlist.length; i++) {
+    const item = watchlist[i];
+    console.log(`Refreshing ${i + 1}/${watchlist.length}: ${item.symbol}`);
+    
+    const newPrice = await fetchStockPrice(item.symbol);
+    
+    if (newPrice) {
+      updatedWatchlist.push({
+        ...item,
+        currentPrice: newPrice
+      });
+      console.log(`✅ ${item.symbol}: $${newPrice}`);
+    } else {
+      updatedWatchlist.push(item);
+      console.log(`❌ ${item.symbol}: Failed, keeping old price`);
+    }
+    
+    // Wait 15 seconds before next call
+    if (i < watchlist.length - 1) {
+      console.log('⏰ Waiting 15 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
+    }
+  }
+  
+  setWatchlist(updatedWatchlist);
+  alert('✅ Watchlist prices updated!');
+};
+
+
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#0F172A', minHeight: '100vh' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -353,7 +441,7 @@ const calculateSavings = () => {
 </div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {['portfolio', 'research', 'add', 'savings', 'charts', 'learn'].map(tab => (
+          {['portfolio', 'watchlist', 'research', 'add', 'savings', 'charts', 'learn'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -369,6 +457,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
               }}
             >
               {tab === 'portfolio' && '📊 My Stocks'}
+              {tab === 'watchlist' && '👁️ Watchlist'}
               {tab === 'research' && '🔍 Research'}
               {tab === 'add' && '➕ Buy Stock'}
               {tab === 'savings' && '💰 Savings'}
@@ -377,6 +466,7 @@ color: activeTab === tab ? 'white' : '#94A3B8',
             </button>
           ))}
         </div>
+
 
         {activeTab === 'portfolio' && (
           <div>
@@ -548,6 +638,176 @@ color: activeTab === tab ? 'white' : '#94A3B8',
             </div>
           </div>
         )}
+
+
+
+{activeTab === 'watchlist' && (
+  <div>
+    {/* Add to Watchlist */}
+    <div style={{ backgroundColor: '#1E293B', borderRadius: '10px', padding: '20px', marginBottom: '20px', border: '1px solid #334155' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: '#F1F5F9' }}>
+        👁️ Stock Watchlist
+      </h2>
+      <p style={{ color: '#94A3B8', marginBottom: '20px' }}>
+        Track stocks you're interested in before buying!
+      </p>
+      
+      <div style={{ maxWidth: '500px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            value={newStock.symbol}
+            onChange={(e) => setNewStock({...newStock, symbol: e.target.value.toUpperCase()})}
+            onKeyPress={(e) => e.key === 'Enter' && addToWatchlist(newStock.symbol)}
+            placeholder="Enter stock symbol (e.g., AAPL)"
+            style={{
+              flex: 1,
+              padding: '12px',
+              fontSize: '16px',
+              border: '2px solid #334155',
+              borderRadius: '6px',
+              backgroundColor: '#0F172A',
+              color: '#F1F5F9'
+            }}
+          />
+          <button
+            onClick={() => addToWatchlist(newStock.symbol)}
+            disabled={watchlistLoading}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: watchlistLoading ? '#64748B' : '#8B5CF6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: 'bold',
+              cursor: watchlistLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {watchlistLoading ? '⏳ Adding...' : '➕ Add to Watchlist'}
+          </button>
+        </div>
+      </div>
+      
+      {watchlist.length > 0 && (
+        <button
+          onClick={refreshWatchlistPrices}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#3B82F6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            marginBottom: '20px'
+          }}
+        >
+          🔄 Refresh All Prices
+        </button>
+      )}
+      
+      {/* Watchlist Items */}
+      {watchlist.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
+          <p style={{ fontSize: '18px' }}>Your watchlist is empty!</p>
+          <p style={{ fontSize: '14px', marginTop: '10px' }}>Add stocks you're interested in to track their prices over time.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {watchlist.map(item => {
+            const priceChange = item.currentPrice - item.addedPrice;
+            const priceChangePercent = ((priceChange / item.addedPrice) * 100).toFixed(2);
+            const addedDate = new Date(item.addedDate).toLocaleDateString();
+            
+            return (
+              <div key={item.id} style={{ backgroundColor: '#0F172A', borderRadius: '8px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#F1F5F9', marginBottom: '5px' }}>
+                    {item.symbol}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '8px' }}>
+                    Added on {addedDate}
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', fontSize: '14px' }}>
+                    <div>
+                      <p style={{ color: '#94A3B8', marginBottom: '3px' }}>Added at</p>
+                      <p style={{ color: '#F1F5F9', fontWeight: 'bold' }}>${item.addedPrice.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p style={{ color: '#94A3B8', marginBottom: '3px' }}>Current</p>
+                      <p style={{ color: '#F1F5F9', fontWeight: 'bold' }}>${item.currentPrice.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p style={{ color: '#94A3B8', marginBottom: '3px' }}>Change</p>
+                      <p style={{ 
+                        color: priceChange >= 0 ? '#10B981' : '#EF4444', 
+                        fontWeight: 'bold' 
+                      }}>
+                        {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} ({priceChangePercent}%)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', marginLeft: '15px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveTab('research');
+                      setResearchSymbol(item.symbol);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🔍 Research
+                  </button>
+                  <button
+                    onClick={() => removeFromWatchlist(item.id)}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#EF4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🗑️ Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+    
+    {/* Educational Info */}
+    <div style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', borderRadius: '8px', padding: '20px' }}>
+      <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#DBEAFE', marginBottom: '10px' }}>
+        💡 How to Use Your Watchlist
+      </h3>
+      <ul style={{ color: '#93C5FD', fontSize: '14px', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
+        <li>Add stocks you're interested in but not ready to buy yet</li>
+        <li>Track how prices change over time before investing</li>
+        <li>Compare the current price to when you added it</li>
+        <li>Click "Research" to learn more about the company</li>
+        <li>When you're ready, go to "Buy Stock" to purchase!</li>
+      </ul>
+    </div>
+  </div>
+)}
+
+
 
 
 {activeTab === 'research' && (
