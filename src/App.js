@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function App() {
   const [activeTab, setActiveTab] = useState('portfolio');
@@ -33,7 +33,7 @@ const [watchlist, setWatchlist] = useState(() => {
   return saved ? JSON.parse(saved) : [];
 });
 
-const [watchlistLoading, setWatchlistLoading] = useState(false);
+const [watchlistLoading] = useState(false);
 const [researchSymbol, setResearchSymbol] = useState('');
 const [researchData, setResearchData] = useState(null);
 const [researchLoading, setResearchLoading] = useState(false);
