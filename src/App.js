@@ -133,6 +133,9 @@ const refreshAllPrices = async () => {
 };
 
 const researchStock = async () => {
+  console.log('=== RESEARCH STOCK STARTED ===');
+  console.log('Symbol:', researchSymbol);
+  
   if (!researchSymbol) {
     alert('Please enter a stock symbol');
     return;
@@ -142,24 +145,68 @@ const researchStock = async () => {
   
   try {
     const apiKey = process.env.REACT_APP_ALPHA_VANTAGE_KEY;
+    console.log('API Key exists:', !!apiKey);
+    console.log('API Key (partial):', apiKey ? apiKey.substring(0, 4) + '...' + apiKey.substring(apiKey.length - 4) : 'MISSING');
     
-    // Get current price
+    // STEP 1: Get current price
+    console.log('STEP 1: Fetching price data...');
     const priceUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${researchSymbol.toUpperCase()}&apikey=${apiKey}`;
+    
     const priceResponse = await axios.get(priceUrl);
+    console.log('Price API Response:', priceResponse.data);
+    
     const priceData = priceResponse.data['Global Quote'];
     
     if (!priceData || !priceData['05. price']) {
+      console.log('❌ ERROR: No price data found');
       alert('Stock not found! Try another symbol.');
       setResearchLoading(false);
       setResearchData(null);
       return;
     }
     
-    // Get company overview
+    console.log('✅ Price fetched successfully:', priceData['05. price']);
+    
+    // STEP 2: Wait before second API call
+    console.log('STEP 2: Waiting 15 seconds to avoid rate limit...');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    
+    // STEP 3: Get company overview
+    console.log('STEP 3: Fetching company overview data...');
     const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${researchSymbol.toUpperCase()}&apikey=${apiKey}`;
+    
     const overviewResponse = await axios.get(overviewUrl);
+    console.log('Overview API Response:', overviewResponse.data);
+    
     const overview = overviewResponse.data;
     
+    // Check for rate limit
+    if (overview.Note) {
+      console.log('❌ RATE LIMIT hit on overview call');
+      alert('⚠️ API rate limit reached. Wait 60 seconds and try again.');
+      setResearchLoading(false);
+      return;
+    }
+    
+    // Check if we got any data
+    if (!overview.Symbol && Object.keys(overview).length === 0) {
+      console.log('❌ Overview returned empty object');
+      alert('⚠️ No company data available. Your API key may not have access to OVERVIEW endpoint.');
+      setResearchLoading(false);
+      return;
+    }
+    
+    // Log what we got
+    console.log('Overview data received:');
+    console.log('  Name:', overview.Name || 'N/A');
+    console.log('  Sector:', overview.Sector || 'N/A');
+    console.log('  Industry:', overview.Industry || 'N/A');
+    console.log('  MarketCap:', overview.MarketCapitalization || 'N/A');
+    console.log('  PE Ratio:', overview.PERatio || 'N/A');
+    console.log('  Description length:', overview.Description ? overview.Description.length : 0);
+    console.log('  All keys:', Object.keys(overview).slice(0, 10).join(', '));
+    
+    // Set the data
     setResearchData({
       symbol: researchSymbol.toUpperCase(),
       price: parseFloat(priceData['05. price']),
@@ -181,9 +228,13 @@ const researchStock = async () => {
       week52High: overview['52WeekHigh'] || 'N/A',
       week52Low: overview['52WeekLow'] || 'N/A'
     });
+    
+    console.log('✅ Research data set successfully');
+    console.log('=== RESEARCH COMPLETE ===');
+    
   } catch (error) {
-    console.error('Error fetching stock data:', error);
-    alert('Error loading stock data. Please try again.');
+    console.error('❌ EXCEPTION ERROR:', error);
+    alert('Error loading stock data. Check console (F12) for details.');
     setResearchData(null);
   }
   
