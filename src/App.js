@@ -15,7 +15,7 @@ function App() {
   const [portfolio, setPortfolio] = useState(() => {
     const saved = localStorage.getItem('portfolio');
     return saved ? JSON.parse(saved) : [
-      { id: 1, symbol: 'AAPL', name: 'Apple', shares: 5, buyPrice: 150, currentPrice: 180 },
+      { id: 1, symbol: 'AAPL', name: 'Apple', shares: 5, buyPrice: 150, currentPrice: 180, previousClose: 178 },
     ];
   });
   
@@ -64,8 +64,12 @@ const fetchStockPrice = async (symbol) => {
     
     if (quote && quote['05. price']) {
       const price = parseFloat(quote['05. price']);
-      console.log('Price fetched successfully:', price);
-      return price;
+      const previousClose = parseFloat(quote['08. previous close']);
+      console.log('Price fetched successfully:', price, 'Previous close:', previousClose);
+      return {
+        currentPrice: price,
+        previousClose: previousClose
+      };
     } else {
       alert(`❌ Stock symbol "${symbol}" not found!\n\nMake sure you're using the correct ticker symbol.\nExamples: AAPL, TSLA, MSFT, GOOGL`);
       return null;
@@ -97,15 +101,16 @@ const refreshAllPrices = async () => {
     const stock = portfolio[i];
     console.log(`Refreshing ${i + 1}/${portfolio.length}: ${stock.symbol}`);
     
-    const newPrice = await fetchStockPrice(stock.symbol);
+    const priceData = await fetchStockPrice(stock.symbol);
     
-    if (newPrice) {
+    if (priceData) {
       updatedPortfolio.push({
         ...stock,
-        currentPrice: newPrice
+        currentPrice: priceData.currentPrice,
+        previousClose: priceData.previousClose
       });
       successCount++;
-      console.log(`✅ ${stock.symbol}: $${newPrice}`);
+      console.log(`✅ ${stock.symbol}: $${priceData.currentPrice}`);
     } else {
       // Keep old price if fetch fails
       updatedPortfolio.push(stock);
@@ -362,18 +367,19 @@ useEffect(() => {
  const addStock = async () => {
   if (newStock.symbol && newStock.shares > 0) {
     // Fetch real price
-    const realPrice = await fetchStockPrice(newStock.symbol);
+    const priceData = await fetchStockPrice(newStock.symbol);
     
-    if (realPrice) {
-      const cost = newStock.shares * realPrice;
+    if (priceData) {
+      const cost = newStock.shares * priceData.currentPrice;
       if (cost <= cash) {
         setPortfolio([...portfolio, {
   id: Date.now(),
   symbol: newStock.symbol.toUpperCase(),
   name: newStock.symbol.toUpperCase(),
   shares: parseFloat(newStock.shares),
-  buyPrice: realPrice,
-  currentPrice: realPrice,
+  buyPrice: priceData.currentPrice,
+  currentPrice: priceData.currentPrice,
+  previousClose: priceData.previousClose,
   notes: '',
   buyDate: new Date().toISOString()
 }]);
@@ -418,20 +424,20 @@ useEffect(() => {
   
   // Fetch current price
 setResearchLoading(true);
-const price = await fetchStockPrice(symbol.toUpperCase());
+const priceData = await fetchStockPrice(symbol.toUpperCase());
 setResearchLoading(false);
   
-  if (price) {
+  if (priceData) {
     const newItem = {
       id: Date.now(),
       symbol: symbol.toUpperCase(),
       addedDate: new Date().toISOString(),
-      addedPrice: price,
-      currentPrice: price
+      addedPrice: priceData.currentPrice,
+      currentPrice: priceData.currentPrice
     };
     
     setWatchlist([...watchlist, newItem]);
-    alert(`✅ ${symbol.toUpperCase()} added to watchlist at $${price.toFixed(2)}`);
+    alert(`✅ ${symbol.toUpperCase()} added to watchlist at $${priceData.currentPrice.toFixed(2)}`);
   }
 };
 
@@ -456,14 +462,14 @@ const refreshWatchlistPrices = async () => {
     const item = watchlist[i];
     console.log(`Refreshing ${i + 1}/${watchlist.length}: ${item.symbol}`);
     
-    const newPrice = await fetchStockPrice(item.symbol);
+    const priceData = await fetchStockPrice(item.symbol);
     
-    if (newPrice) {
+    if (priceData) {
       updatedWatchlist.push({
         ...item,
-        currentPrice: newPrice
+        currentPrice: priceData.currentPrice
       });
-      console.log(`✅ ${item.symbol}: $${newPrice}`);
+      console.log(`✅ ${item.symbol}: $${priceData.currentPrice}`);
     } else {
       updatedWatchlist.push(item);
       console.log(`❌ ${item.symbol}: Failed, keeping old price`);
@@ -620,37 +626,53 @@ color: activeTab === tab ? 'white' : '#94A3B8',
                   {portfolio.map(stock => {
                     const gainLoss = stock.shares * (stock.currentPrice - stock.buyPrice);
                     const gainLossPercent = ((stock.currentPrice - stock.buyPrice) / stock.buyPrice * 100).toFixed(1);
+                    
+                    // Calculate today's change
+                    const todayChange = stock.shares * (stock.currentPrice - (stock.previousClose || stock.currentPrice));
+                    const todayChangePercent = stock.previousClose 
+                      ? (((stock.currentPrice - stock.previousClose) / stock.previousClose) * 100).toFixed(2)
+                      : '0.00';
+                    
                     return (
                       <div key={stock.id} style={{ backgroundColor: '#0F172A', borderRadius: '8px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' }}>
-                        <div>
+                        <div style={{ flex: 1 }}>
   <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '5px', color: '#F1F5F9' }}>{stock.symbol}</h3>
   <p style={{ fontSize: '14px', color: '#94A3B8', marginBottom: '5px' }}>
-    {stock.shares} shares
+    {stock.shares} shares @ ${stock.currentPrice.toFixed(2)}
   </p>
   <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '3px' }}>
-  Buy: ${stock.buyPrice.toFixed(2)} → Now: ${stock.currentPrice.toFixed(2)}
-  {stock.currentPrice > stock.buyPrice && (
-    <span style={{ color: '#10B981', marginLeft: '8px' }}>▲ Up</span>
-  )}
-  {stock.currentPrice < stock.buyPrice && (
-    <span style={{ color: '#EF4444', marginLeft: '8px' }}>▼ Down</span>
-  )}
-  {stock.currentPrice === stock.buyPrice && (
-    <span style={{ color: '#94A3B8', marginLeft: '8px' }}>→ Same</span>
-  )}
-</p>
+    Buy Price: ${stock.buyPrice.toFixed(2)} | Previous Close: ${(stock.previousClose || stock.currentPrice).toFixed(2)}
+  </p>
   <p style={{ fontSize: '13px', color: '#94A3B8' }}>
     Total Value: ${(stock.shares * stock.currentPrice).toFixed(2)}
   </p>
 </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <p style={{ fontSize: '18px', fontWeight: 'bold', color: gainLoss >= 0 ? '#10B981' : '#EF4444' }}>
-                            {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)}
-                          </p>
-                          <p style={{ fontSize: '14px', color: gainLoss >= 0 ? '#10B981' : '#EF4444' }}>
-                            ({gainLossPercent}%)
-                          </p>
+
+                        {/* Two performance columns */}
+                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                          {/* Column 1: Today's Change */}
+                          <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                            <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '3px' }}>Today</p>
+                            <p style={{ fontSize: '16px', fontWeight: 'bold', color: todayChange >= 0 ? '#10B981' : '#EF4444' }}>
+                              {todayChange >= 0 ? '+' : ''}${todayChange.toFixed(2)}
+                            </p>
+                            <p style={{ fontSize: '13px', color: todayChange >= 0 ? '#10B981' : '#EF4444' }}>
+                              ({todayChangePercent}%)
+                            </p>
+                          </div>
+                          
+                          {/* Column 2: Total Gain/Loss Since Purchase */}
+                          <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                            <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '3px' }}>Total Gain/Loss</p>
+                            <p style={{ fontSize: '18px', fontWeight: 'bold', color: gainLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                              {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)}
+                            </p>
+                            <p style={{ fontSize: '14px', color: gainLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                              ({gainLossPercent}%)
+                            </p>
+                          </div>
                         </div>
+                        
                        <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
   <button
     onClick={() => editStock(stock.id)}
